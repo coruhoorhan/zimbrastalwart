@@ -1,0 +1,65 @@
+services:
+  stalwart-mail:
+    image: stalwartlabs/stalwart:latest
+    container_name: stalwart-mail
+    restart: unless-stopped
+    depends_on:
+      - db
+    volumes:
+      - ./stalwart-mail:/opt/stalwart-mail
+    ports:
+      - "443:443"
+      - "8080:8080"
+      - "25:25"
+      - "587:587"
+      - "465:465"
+      - "143:143"
+      - "993:993"
+      - "4190:4190"
+      - "110:110"
+      - "995:995"
+
+  db:
+    image: postgres:16
+    container_name: stalwart-postgres
+    restart: unless-stopped
+    shm_size: 128mb
+    environment:
+      POSTGRES_USER: stalwart
+      POSTGRES_PASSWORD: 6cfd8b77509322b29b7be96660d75346
+      POSTGRES_DB: stalwart
+    volumes:
+      - ./postgres:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: redis
+    restart: unless-stopped
+
+  migration-api:
+    build: ./backend
+    container_name: migration-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+
+  worker:
+    build: ./backend
+    container_name: worker
+    restart: unless-stopped
+    command: celery -A app.workers.sync_worker worker --loglevel=info -Q celery
+    depends_on:
+      - migration-api
+      - redis
+
+  frontend:
+    build: ./frontend
+    container_name: migration-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - migration-api

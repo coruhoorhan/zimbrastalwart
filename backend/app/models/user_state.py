@@ -1,0 +1,10 @@
+from enum import Enum
+
+class UserState(str, Enum):
+    NEW = "NEW"
+    ACCOUNT_CREATED = "ACCOUNT_CREATED"
+    FULL_SYNC_RUNNING = "FULL_SYNC_RUNNING"
+    FULL_SYNC_DONE = "FULL_SYNC_DONE"
+    DELTA_PENDING = "DELTA_PENDING"
+    DELTA_DONE = "DELTA_DONE"
+    ERROR = "ERROR"
