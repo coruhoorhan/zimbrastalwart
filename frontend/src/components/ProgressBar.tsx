@@ -23,9 +23,14 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ status }) => {
             color = "bg-yellow-500";
             break;
         case "FULL_SYNC_DONE":
+        case "DELTA_DONE":
         case "DONE":
             width = "100%";
             color = "bg-green-500";
+            break;
+        case "DELTA_SYNC_RUNNING":
+            width = "85%";
+            color = "bg-indigo-500";
             break;
         case "ERROR":
             width = "100%";

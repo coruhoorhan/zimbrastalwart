@@ -1,4 +1,3 @@
-import React from "react";
 import UserTable from "./components/UserTable";
 import SettingsPanel from "./components/SettingsPanel";
 

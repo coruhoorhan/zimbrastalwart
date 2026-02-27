@@ -36,19 +36,24 @@ def test_sync(data: TestSyncData):
 @router.post("/full")
 def full_sync():
     users = db_session.get_all_users()
+    started = 0
     for u in users:
         if u.status == UserState.NEW.value:
             create_user_on_stalwart(u.email)
             db_session.update_user_state(u.email, UserState.ACCOUNT_CREATED)
-        passw = u.source_password if u.source_password else "sourcepass"
-        sync_user_mail.delay(u.email, passw, "Fatsa2026!")
-    return {"started": len(users)}
+        if u.status in {UserState.NEW.value, UserState.ACCOUNT_CREATED.value, UserState.ERROR.value}:
+            passw = u.source_password if u.source_password else "sourcepass"
+            sync_user_mail.delay(u.email, passw, "Fatsa2026!", "full")
+            started += 1
+    return {"started": started}
 
 @router.post("/delta")
 def delta_sync():
     users = db_session.get_all_users()
+    started = 0
     for u in users:
-        if u.status == UserState.FULL_SYNC_DONE.value or u.status == UserState.DONE.value:
+        if u.status in {UserState.FULL_SYNC_DONE.value, UserState.DELTA_DONE.value}:
             passw = u.source_password if u.source_password else "sourcepass"
-            sync_user_mail.delay(u.email, passw, "Fatsa2026!")
-    return {"started": len(users)}
+            sync_user_mail.delay(u.email, passw, "Fatsa2026!", "delta")
+            started += 1
+    return {"started": started}
