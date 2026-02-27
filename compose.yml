@@ -4,7 +4,8 @@ services:
     container_name: stalwart-mail
     restart: unless-stopped
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     volumes:
       - ./stalwart-mail:/opt/stalwart-mail
     ports:
@@ -25,41 +26,78 @@ services:
     restart: unless-stopped
     shm_size: 128mb
     environment:
-      POSTGRES_USER: stalwart
-      POSTGRES_PASSWORD: 6cfd8b77509322b29b7be96660d75346
-      POSTGRES_DB: stalwart
+      POSTGRES_USER: ${POSTGRES_USER:-stalwart}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-6cfd8b77509322b29b7be96660d75346}
+      POSTGRES_DB: ${POSTGRES_DB:-stalwart}
     volumes:
       - ./postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-stalwart} -d ${POSTGRES_DB:-stalwart}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7
     container_name: redis
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   migration-api:
     build: ./backend
     container_name: migration-api
     restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://stalwart:6cfd8b77509322b29b7be96660d75346@db:5432/stalwart}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      TARGET_IMAP_HOST: ${TARGET_IMAP_HOST:-stalwart-mail}
+      TARGET_IMAP_PASSWORD: ${TARGET_IMAP_PASSWORD:-Fatsa2026!}
     ports:
       - "8000:8000"
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/docs >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
 
   worker:
     build: ./backend
     container_name: worker
     restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://stalwart:6cfd8b77509322b29b7be96660d75346@db:5432/stalwart}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      TARGET_IMAP_HOST: ${TARGET_IMAP_HOST:-stalwart-mail}
+      TARGET_IMAP_PASSWORD: ${TARGET_IMAP_PASSWORD:-Fatsa2026!}
     command: celery -A app.workers.sync_worker worker --loglevel=info -Q celery
     depends_on:
-      - migration-api
-      - redis
+      migration-api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   frontend:
     build: ./frontend
     container_name: migration-frontend
     restart: unless-stopped
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
     ports:
       - "3000:3000"
     depends_on:
-      - migration-api
+      migration-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000 >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5

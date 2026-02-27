@@ -1,9 +1,12 @@
+import os
 from sqlalchemy import create_engine, Column, String, Integer
 from sqlalchemy.orm import sessionmaker, declarative_base
 from app.models.user_state import UserState
 
-# We use the postgres connection settings from your docker-compose.yml
-DATABASE_URL = "postgresql://stalwart:6cfd8b77509322b29b7be96660d75346@db:5432/stalwart"
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://stalwart:6cfd8b77509322b29b7be96660d75346@db:5432/stalwart"
+)
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine)
@@ -23,7 +26,8 @@ class User(Base):
     error = Column(String, nullable=True)
     source_password = Column(String, nullable=True)
 
-Base.metadata.create_all(bind=engine)
+def init_db():
+    Base.metadata.create_all(bind=engine)
 
 class DBSession:
     def get_config(self, key: str, default: str = ""):

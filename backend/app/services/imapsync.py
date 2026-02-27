@@ -1,6 +1,7 @@
 import subprocess
 from app.database import db_session
 from app.models.user_state import UserState
+from app.settings import TARGET_IMAP_HOST
 
 def run_imapsync(user_email: str, source_pass: str, target_pass: str):
     try:
@@ -11,7 +12,7 @@ def run_imapsync(user_email: str, source_pass: str, target_pass: str):
             "--host1", zimbra_host,
             "--user1", user_email,
             "--password1", source_pass,
-            "--host2", "stalwart",
+            "--host2", TARGET_IMAP_HOST,
             "--user2", user_email,
             "--password2", target_pass,
             "--ssl1", "--ssl2",
