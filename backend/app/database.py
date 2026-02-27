@@ -30,53 +30,50 @@ def init_db():
     Base.metadata.create_all(bind=engine)
 
 class DBSession:
-    def __init__(self):
-        self.db = None
-
-    def _get_db(self):
-        if self.db is None:
-            self.db = SessionLocal()
-        return self.db
-
     def get_config(self, key: str, default: str = ""):
-        c = self._get_db().query(AppConfig).filter(AppConfig.key == key).first()
-        return c.value if c else default
+        with SessionLocal() as db:
+            c = db.query(AppConfig).filter(AppConfig.key == key).first()
+            return c.value if c else default
     
     def set_config(self, key: str, value: str):
-        db = self._get_db()
-        c = db.query(AppConfig).filter(AppConfig.key == key).first()
-        if c:
-            c.value = value
-        else:
-            db.add(AppConfig(key=key, value=value))
-        db.commit()
+        with SessionLocal() as db:
+            c = db.query(AppConfig).filter(AppConfig.key == key).first()
+            if c:
+                c.value = value
+            else:
+                db.add(AppConfig(key=key, value=value))
+            db.commit()
 
     def get_all_users(self):
-        return self._get_db().query(User).all()
+        with SessionLocal() as db:
+            # We copy data into dicts/lists to avoid DetachedInstanceError since session closes
+            users = db.query(User).all()
+            db.expunge_all()
+            return users
 
     def add_user(self, email: str, source_password: str = ""):
-        db = self._get_db()
-        u = db.query(User).filter(User.email == email).first()
-        if not u:
-            u = User(email=email, source_password=source_password)
-            db.add(u)
-        else:
-            u.source_password = source_password
-        db.commit()
+        with SessionLocal() as db:
+            u = db.query(User).filter(User.email == email).first()
+            if not u:
+                u = User(email=email, source_password=source_password)
+                db.add(u)
+            else:
+                u.source_password = source_password
+            db.commit()
 
     def update_user_state(self, email: str, state: UserState):
-        db = self._get_db()
-        u = db.query(User).filter(User.email == email).first()
-        if u:
-            u.status = state.value
-            db.commit()
+        with SessionLocal() as db:
+            u = db.query(User).filter(User.email == email).first()
+            if u:
+                u.status = state.value
+                db.commit()
 
     def set_error(self, email: str, error: str):
-        db = self._get_db()
-        u = db.query(User).filter(User.email == email).first()
-        if u:
-            u.status = UserState.ERROR.value
-            u.error = error
-            db.commit()
+        with SessionLocal() as db:
+            u = db.query(User).filter(User.email == email).first()
+            if u:
+                u.status = UserState.ERROR.value
+                u.error = error
+                db.commit()
 
 db_session = DBSession()

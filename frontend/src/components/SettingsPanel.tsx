@@ -7,7 +7,7 @@ export default function SettingsPanel() {
 
     useEffect(() => {
         getConfig()
-            .then(d => setHost(d.zimbra_host))
+            .then((d: any) => setHost(d.zimbra_host))
             .catch(() => { });
     }, []);
 
