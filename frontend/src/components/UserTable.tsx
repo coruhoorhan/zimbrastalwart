@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { fetchUsers, startFullSync, startDeltaSync, startImport, addUser } from "../api/apiClient";
+import { fetchUsers, startFullSync, startDeltaSync, startImport, addUser, getConfig, testSync } from "../api/apiClient";
 import ProgressBar from "./ProgressBar";
 
 interface User {
@@ -59,21 +59,15 @@ const UserTable: React.FC = () => {
         }
         setTestResult({ status: "info", msg: "Testing connection... Please wait." });
         try {
-            const hostRes = await fetch("http://localhost:8000/config/");
-            const hostData = await hostRes.json();
-
-            const res = await fetch("http://localhost:8000/sync/test", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ zimbra_host: hostData.zimbra_host, email: newEmail, source_password: newPass })
-            });
-            const data = await res.json();
+            const hostData = await getConfig();
+            const data = await testSync(hostData.zimbra_host, newEmail, newPass);
             setTestResult({
                 status: data.status === 'success' ? 'success' : 'error',
                 msg: data.message
             });
-        } catch (e) {
-            setTestResult({ status: "error", msg: "Network error testing connection." });
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : "Network error testing connection.";
+            setTestResult({ status: "error", msg: message });
         }
     };
 
