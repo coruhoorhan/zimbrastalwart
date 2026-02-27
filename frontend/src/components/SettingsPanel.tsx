@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { getConfig, saveConfig } from "../api/apiClient";
 
 export default function SettingsPanel() {
     const [host, setHost] = useState("");
     const [status, setStatus] = useState("");
 
     useEffect(() => {
-        fetch("http://localhost:8000/config/")
-            .then(r => r.json())
+        getConfig()
             .then(d => setHost(d.zimbra_host))
             .catch(() => { });
     }, []);
@@ -14,11 +14,7 @@ export default function SettingsPanel() {
     const handleSave = async () => {
         setStatus("Saving...");
         try {
-            await fetch("http://localhost:8000/config/", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ zimbra_host: host })
-            });
+            await saveConfig(host);
             setStatus("Config Saved!");
             setTimeout(() => setStatus(""), 2000);
         } catch {

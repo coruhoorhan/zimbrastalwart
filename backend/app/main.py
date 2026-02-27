@@ -1,8 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import users, sync, cutover, monitoring, logs, config
+from app.database import init_db
 
 app = FastAPI(title="Enterprise Mail Migration Platform")
+
+
+@app.on_event("startup")
+def startup_event():
+    init_db()
 
 # CORS definitions
 app.add_middleware(

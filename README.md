@@ -25,6 +25,12 @@ git clone https://github.com/coruhoorhan/zimbrastalwart.git
 cd zimbrastalwart
 ```
 
+### 1.1- Ortam Değişkenlerini Hazırlama (.env)
+Önerilen güvenli kullanım için varsayılanları kopyalayın ve parolaları düzenleyin:
+```bash
+cp .env.example .env
+```
+
 ### 2- Docker Üzerinden Servisleri Başlatma
 Sistemi arka planda güncel baz kalıplarla derleyip ayağa kaldırmak için:
 ```bash
