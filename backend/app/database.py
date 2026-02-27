@@ -26,44 +26,50 @@ class User(Base):
 Base.metadata.create_all(bind=engine)
 
 class DBSession:
-    def __init__(self):
-        self.db = SessionLocal()
-
     def get_config(self, key: str, default: str = ""):
-        c = self.db.query(AppConfig).filter(AppConfig.key == key).first()
-        return c.value if c else default
+        with SessionLocal() as db:
+            c = db.query(AppConfig).filter(AppConfig.key == key).first()
+            return c.value if c else default
     
     def set_config(self, key: str, value: str):
-        c = self.db.query(AppConfig).filter(AppConfig.key == key).first()
-        if c:
-            c.value = value
-        else:
-            self.db.add(AppConfig(key=key, value=value))
-        self.db.commit()
+        with SessionLocal() as db:
+            c = db.query(AppConfig).filter(AppConfig.key == key).first()
+            if c:
+                c.value = value
+            else:
+                db.add(AppConfig(key=key, value=value))
+            db.commit()
 
     def get_all_users(self):
-        return self.db.query(User).all()
+        with SessionLocal() as db:
+            # We copy data into dicts/lists to avoid DetachedInstanceError since session closes
+            users = db.query(User).all()
+            db.expunge_all()
+            return users
 
     def add_user(self, email: str, source_password: str = ""):
-        u = self.db.query(User).filter(User.email == email).first()
-        if not u:
-            u = User(email=email, source_password=source_password)
-            self.db.add(u)
-        else:
-            u.source_password = source_password
-        self.db.commit()
+        with SessionLocal() as db:
+            u = db.query(User).filter(User.email == email).first()
+            if not u:
+                u = User(email=email, source_password=source_password)
+                db.add(u)
+            else:
+                u.source_password = source_password
+            db.commit()
 
     def update_user_state(self, email: str, state: UserState):
-        u = self.db.query(User).filter(User.email == email).first()
-        if u:
-            u.status = state.value
-            self.db.commit()
+        with SessionLocal() as db:
+            u = db.query(User).filter(User.email == email).first()
+            if u:
+                u.status = state.value
+                db.commit()
 
     def set_error(self, email: str, error: str):
-        u = self.db.query(User).filter(User.email == email).first()
-        if u:
-            u.status = UserState.ERROR.value
-            u.error = error
-            self.db.commit()
+        with SessionLocal() as db:
+            u = db.query(User).filter(User.email == email).first()
+            if u:
+                u.status = UserState.ERROR.value
+                u.error = error
+                db.commit()
 
 db_session = DBSession()
